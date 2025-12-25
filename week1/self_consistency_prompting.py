@@ -8,35 +8,92 @@ load_dotenv()
 
 NUM_RUNS_TIMES = 5
 
-# TODO: Fill this in! Try to get as close to 100% correctness across all runs as possible.
-YOUR_SYSTEM_PROMPT = ""
+"""
+Self-Consistency
+Perhaps one of the more advanced techniques out there for prompt engineering is self-consistency.
+Proposed by Wang et al. (2022), self-consistency aims "to replace the naive greedy decoding used 
+in chain-of-thought prompting". The idea is to sample multiple, diverse reasoning paths through 
+few-shot CoT, and use the generations to select the most consistent answer. This helps to boost 
+the performance of CoT prompting on tasks involving arithmetic and commonsense reasoning.
 
-USER_PROMPT = """
-Solve this problem, then give the final answer on the last line as "Answer: <number>".
-
-Henry made two stops during his 60-mile bike trip. He first stopped after 20
-miles. His second stop was 15 miles before the end of the trip. How many miles
-did he travel between his first and second stops?
+正确范式：Free-form Reasoning + Robust Answer Extraction
 """
 
-EXPECTED_OUTPUT = "Answer: 25"
+# TODO: Fill this in! Try to get as close to 100% correctness across all runs as possible.
+YOUR_SYSTEM_PROMPT = """
+Q: There are 15 trees in the grove. Grove workers will plant trees in the grove today. After they are done,
+there will be 21 trees. How many trees did the grove workers plant today?
+A: We start with 15 trees. Later we have 21 trees. The difference must be the number of trees they planted.
+So, they must have planted 21 - 15 = 6 trees.
+Answer: 6
+Q: If there are 3 cars in the parking lot and 2 more cars arrive, how many cars are in the parking lot?
+A: There are 3 cars in the parking lot already. 2 more arrive. Now there are 3 + 2 = 5 cars. 
+Answer: 5
+"""
+
+USER_PROMPT = """
+Solve this problem step by step. You may use any notation you like in your reasoning — 
+LaTeX, equations, Chinese, English, or code.
+
+However, for the final answer, follow this rule strictly:
+
+🔹 On the very last line of your entire response, write exactly:
+Answer: <number>
+
+Do NOT use LaTeX, boxes, markdown, or units in this final line.
+Examples:
+Good: Answer: 312
+Bad: Answer: $\\boxed{312}$
+Bad: The answer is 312.
+Bad: Answer: 312 cans
+Bad:
+$$
+\boxed{312}
+$$
+
+This format is required for automated grading. Violations will be marked wrong.
+
+Question:
+A lighthouse emits two signals:
+- Signal X flashes every 12 seconds,
+- Signal Y flashes every 25 seconds.
+
+However, due to a fault, Signal Y started 37 seconds AFTER Signal X.
+
+At time t = 0, Signal X flashed.
+
+What is the smallest time t > 0 (in seconds) such that:
+1. Both signals flash at the same moment, AND
+2. t ≤ 1701 ?
+
+If no such t exists within the limit, output -1.
+"""
+
+EXPECTED_OUTPUT = "312"
 
 
-def extract_final_answer(text: str) -> str:
-    """Extract the final 'Answer: ...' line from a verbose reasoning trace.
-
-    - Finds the LAST line that starts with 'Answer:' (case-insensitive)
-    - Normalizes to 'Answer: <number>' when a number is present
-    - Falls back to returning the matched content if no number is detected
+def extract_answer(output: str) -> str | None:
     """
-    matches = re.findall(r"(?mi)^\s*answer\s*:\s*(.+)\s*$", text)
-    if matches:
-        value = matches[-1].strip()
-        num_match = re.search(r"-?\d+(?:\.\d+)?", value.replace(",", ""))
-        if num_match:
-            return f"Answer: {num_match.group(0)}"
-        return f"Answer: {value}"
-    return text.strip()
+    Extract the final answer from model output that follows the format:
+        ... 
+        Answer: <value>
+    
+    This function:
+    - Searches for a line containing "Answer:" (case-insensitive)
+    - Strips whitespace and ignores markdown/code blocks
+    - Returns the answer string if found, otherwise None
+    
+    Examples:
+        "Answer: 42" → "42"
+        "The result is Answer: 123" → "123"
+        "answer: 7" → "7"
+        "Final answer: 5" → None (doesn't match 'Answer:' pattern)
+    """
+    # Use case-insensitive regex to find "Answer:" followed by non-whitespace
+    match = re.search(r"(?i)Answer:\s*(\S+)", output)
+    if match:
+        return match.group(1).strip()
+    return "None"
 
 
 def test_your_prompt(system_prompt: str) -> bool:
@@ -48,15 +105,15 @@ def test_your_prompt(system_prompt: str) -> bool:
     for idx in range(NUM_RUNS_TIMES):
         print(f"Running test {idx + 1} of {NUM_RUNS_TIMES}")
         response = chat(
-            model="llama3.1:8b",
+            model="qwen3:4b",
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": USER_PROMPT},
             ],
-            options={"temperature": 1},
+            options={"temperature": 0.8},
         )
         output_text = response.message.content
-        final_answer = extract_final_answer(output_text)
+        final_answer = extract_answer(output_text)
         print(f"Run {idx + 1} answer: {final_answer}")
         answers.append(final_answer.strip())
 

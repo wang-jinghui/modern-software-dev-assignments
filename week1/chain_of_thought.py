@@ -8,7 +8,7 @@ load_dotenv()
 NUM_RUNS_TIMES = 5
 
 # TODO: Fill this in!
-YOUR_SYSTEM_PROMPT = ""
+YOUR_SYSTEM_PROMPT = "Let's think step-by-step." # Zero-shot chain-of-thought prompt
 
 
 USER_PROMPT = """
@@ -48,7 +48,7 @@ def test_your_prompt(system_prompt: str) -> bool:
     for idx in range(NUM_RUNS_TIMES):
         print(f"Running test {idx + 1} of {NUM_RUNS_TIMES}")
         response = chat(
-            model="llama3.1:8b",
+            model="qwen3:4b",
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": USER_PROMPT},
@@ -59,6 +59,7 @@ def test_your_prompt(system_prompt: str) -> bool:
         final_answer = extract_final_answer(output_text)
         if final_answer.strip() == EXPECTED_OUTPUT.strip():
             print("SUCCESS")
+            print(output_text)
             return True
         else:
             print(f"Expected output: {EXPECTED_OUTPUT}")
