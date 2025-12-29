@@ -8,6 +8,23 @@ load_dotenv()
 MODEL_NAME = "qwen3:4b"
 TEMPERATURE = 0.5
 
+'''
+To improve the reliability and performance of LLMs, one of the important prompt engineering techniques
+is to break tasks into its subtasks. Once those subtasks have been identified, the LLM is prompted with 
+a subtask and then its response is used as input to another prompt. This is what's referred to as prompt 
+chaining, where a task is split into subtasks with the idea to create a chain of prompt operations.
+
+Prompt chaining is useful to accomplish complex tasks which an LLM might struggle to address if prompted 
+with a very detailed prompt. In prompt chaining, chain prompts perform transformations or additional processes 
+on the generated responses before reaching a final desired state.
+
+Besides achieving better performance, prompt chaining helps to boost the transparency of your LLM application, 
+increases controllability, and reliability. This means that you can debug problems with model responses much 
+more easily and analyze and improve performance in the different stages that need improvement.
+
+Prompt chaining is particularly useful when building LLM-powered conversational assistants and improving the 
+personalization and user experience of your applications.
+'''
 
 class PromptChain:
     def __init__(self, model: str = MODEL_NAME, temperature: float = TEMPERATURE):
