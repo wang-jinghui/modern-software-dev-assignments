@@ -34,11 +34,19 @@ ollama run llama3.1:8b
 ```
 
 ## Techniques and source files
+- ＋ Zero-shot prompting — `week1/zero_shot_prompting.py`
 - K-shot prompting — `week1/k_shot_prompting.py`
 - Chain-of-thought — `week1/chain_of_thought.py`
+- ＋ Meta-prompting — `week1/meta_prompting.py`
 - Tool calling — `week1/tool_calling.py`
 - Self-consistency prompting — `week1/self_consistency_prompting.py`
+- ＋ Prompt Chaining — `week1/prompt_chaining.py`
+- ＋ Tree-of-thought — `week1/tree_of_thought.py`
 - RAG (Retrieval-Augmented Generation) — `week1/rag.py`
+- ＋ Automatic Prompt Engineer - `week1/automatic_prompt_engineering.py`
+- ＋ Directional Stimulus Prompting — `week1/directional_stimulus_prompting.py`
+- ＋ Program-Aided Language Models — `week1/program_aided_lm.py`
+- ＋ ReAct — `week1/react_prompting.py`
 - Reflexion — `week1/reflexion.py`
 
 ## Deliverables
