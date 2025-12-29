@@ -8,6 +8,31 @@ load_dotenv()
 
 NUM_RUNS_TIMES = 5
 
+'''
+Retrieval Augmented Generation (RAG)
+General-purpose language models can be fine-tuned to achieve several common tasks 
+such as sentiment analysis and named entity recognition. These tasks generally don't 
+require additional background knowledge.
+
+For more complex and knowledge-intensive tasks, it's possible to build a language 
+model-based system that accesses external knowledge sources to complete tasks. This 
+enables more factual consistency, improves reliability of the generated responses, 
+and helps to mitigate the problem of "hallucination".
+
+Meta AI researchers introduced a method called Retrieval Augmented Generation (RAG) 
+to address such knowledge-intensive tasks. RAG combines an information retrieval 
+component with a text generator model. RAG can be fine-tuned and its internal knowledge 
+can be modified in an efficient manner and without needing retraining of the entire model.
+
+RAG takes an input and retrieves a set of relevant/supporting documents given a source 
+(e.g., Wikipedia). The documents are concatenated as context with the original input 
+prompt and fed to the text generator which produces the final output. This makes RAG 
+adaptive for situations where facts could evolve over time. This is very useful as 
+LLMs's parametric knowledge is static. RAG allows language models to bypass retraining, 
+enabling access to the latest information for generating reliable outputs via retrieval-based generation.
+'''
+
+
 DATA_FILES: List[str] = [
     os.path.join(os.path.dirname(__file__), "data", "api_docs.txt"),
 ]
@@ -37,7 +62,7 @@ QUESTION = (
 
 
 # TODO: Fill this in!
-YOUR_SYSTEM_PROMPT = ""
+YOUR_SYSTEM_PROMPT = "You are a helpful assistant that generates Python code for a given task."
 
 
 # For this simple example
@@ -56,7 +81,7 @@ def YOUR_CONTEXT_PROVIDER(corpus: List[str]) -> List[str]:
 
     For example, return [] to simulate missing context, or [corpus[0]] to include the API docs.
     """
-    return []
+    return [corpus[0]]
 
 
 def make_user_prompt(question: str, context_docs: List[str]) -> str:
@@ -92,12 +117,14 @@ def extract_code_block(text: str) -> str:
 def test_your_prompt(system_prompt: str, context_provider: Callable[[List[str]], List[str]]) -> bool:
     """Run up to NUM_RUNS_TIMES and return True if any output matches EXPECTED_OUTPUT."""
     context_docs = context_provider(CORPUS)
+    print("Testing your prompt with context documents:", context_docs)
+
     user_prompt = make_user_prompt(QUESTION, context_docs)
 
     for idx in range(NUM_RUNS_TIMES):
         print(f"Running test {idx + 1} of {NUM_RUNS_TIMES}")
         response = chat(
-            model="llama3.1:8b",
+            model="qwen3:4b",
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt},
