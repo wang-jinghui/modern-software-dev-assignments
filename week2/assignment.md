@@ -26,7 +26,7 @@ conda activate cs146s
 ```
 2. From the project root, run the server:
 ```
-poetry run uvicorn week2.app.main:app --reload
+poetry run uvicorn week2.app.main:app --reload --host 0.0.0.0 --port 8888
 ```
 3. Open a web browser and navigate to http://127.0.0.1:8000/.
 4. Familiarize yourself with the current state of the application. Make sure you can successfully input notes and produce the extracted action item checklist. 
