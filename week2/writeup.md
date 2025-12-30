@@ -140,12 +140,187 @@ IMPORTANT: Return ONLY the JSON object with the "action_items" field, no explana
 ### Exercise 2: Add Unit Tests
 Prompt: 
 ```
-TODO
+你是一个专业的 Python 测试工程师，正在为函数 `extract_action_items_llm` 编写单元测试。
+
+该函数位于 `week2/app/services/extract.py`，其行为必须与同文件中的 `extract_action_items` 完全一致。  
+请先观察 `extract_action_items` 的实现，确定其：
+- 输入参数（通常是一个字符串）
+- 返回值类型和结构（例如列表、字典、嵌套形式等）
+- 在空输入、无效输入或无匹配时的返回行为
+
+基于这些观察，使用 `pytest` 为 `extract_action_items_llm` 编写测试用例，要求：
+
+1. **测试用例应覆盖以下典型输入场景**：
+   - 空字符串（""）
+   - 纯叙述性文本（无明确行动项）
+   - 项目符号列表（如以 "- " 或 "* " 开头的行）
+   - 关键词前缀的行（如 "TODO:", "Action:", "需要:", "请完成:" 等常见任务标记）
+   - 包含多个行动项的混合文本
+   - 包含特殊字符、换行、缩进的复杂笔记
+
+2. **每个测试用例必须**：
+   - 调用 `extract_action_items_llm(input_text)`
+   - 验证返回值的类型与 `extract_action_items` 一致
+   - 验证返回值的结构合理（例如非空输入应返回非空结果，字段名符合预期）
+   - 对于相同输入，`extract_action_items_llm` 和 `extract_action_items` 的输出应具有相同的语义（不要求完全相等，但关键字段应存在）
+
+3. **不要硬编码期望字段名**（如 "description"），而是根据 `extract_action_items` 的实际返回动态判断。  
+   如果原函数在某输入下返回 `[{"task": "review code"}]`，则 LLM 版本也应包含 `"task"` 字段。
+
+4. **包含一个对比测试**（可选但推荐）：
+   ```python
+   def test_extract_consistency():
+       note = "TODO: 审核 PR\n- 准备下周会议"
+       old_result = extract_action_items(note)
+       new_result = extract_action_items_llm(note)
+       # 验证两者结构兼容（例如长度一致、都有必要字段）
 ``` 
 
 Generated Code Snippets:
-```
-TODO: List all modified code files with the relevant line numbers.
+```python
+# tests/test_extract_llm.py
+import pytest
+from app.services.extract import extract_action_items, extract_action_items_llm
+
+def test_empty_string():
+    """Test behavior with empty string input"""
+    result = extract_action_items_llm("")
+    assert isinstance(result, list)
+    assert len(result) == 0
+    assert result == extract_action_items("")
+
+def test_narrative_text():
+    """Test behavior with purely narrative text (no clear action items)"""
+    text = "This is just a regular sentence. It describes something that happened yesterday."
+    result = extract_action_items_llm(text)
+    original = extract_action_items(text)
+    
+    assert isinstance(result, list)
+    assert all(isinstance(item, str) for item in result)
+    assert result == original
+
+def test_bullet_points():
+    """Test behavior with bullet point lists"""
+    text = """
+    - Set up database
+    * Implement API endpoint
+    1. Write unit tests
+    • Review code
+    """
+    result = extract_action_items_llm(text)
+    original = extract_action_items(text)
+    
+    assert isinstance(result, list)
+    assert len(result) > 0
+    assert all(isinstance(item, str) for item in result)
+    assert len(result) == len(original)
+    
+    # Verify key content from original items exists in LLM results
+    for orig_item in original:
+        key_words = orig_item.lower().split()[:2]
+        assert any(all(kw in res.lower() for kw in key_words) for res in result)
+
+def test_keyword_prefixes():
+    """Test behavior with keyword prefixes"""
+    text = """
+    TODO: Complete documentation
+    Action: Schedule meeting with team
+    Next: Prepare presentation slides
+    需要: 审核 PR
+    请完成: 更新用户配置文件
+    """
+    result = extract_action_items_llm(text)
+    original = extract_action_items(text)
+    
+    assert isinstance(result, list)
+    assert len(result) > 0
+    assert all(isinstance(item, str) for item in result)
+    assert len(result) == len(original)
+    
+    # Verify key content from original items exists in LLM results
+    for orig_item in original:
+        key_words = orig_item.lower().split()[:2]
+        assert any(all(kw in res.lower() for kw in key_words) for res in result)
+
+def test_mixed_content():
+    """Test behavior with mixed content containing multiple action items"""
+    text = """
+    Meeting notes from 2023-10-15:
+    
+    - [ ] Set up database
+    * implement API extract endpoint
+    1. Write tests
+    
+    This is just a narrative sentence about what we discussed.
+    
+    Next: Review the design document
+    Action: Send email to stakeholders
+    
+    Some more random text.
+    """
+    result = extract_action_items_llm(text)
+    original = extract_action_items(text)
+    
+    assert isinstance(result, list)
+    assert len(result) > 0
+    assert all(isinstance(item, str) for item in result)
+    assert len(result) == len(original)
+    
+    # Verify key content from original items exists in LLM results
+    for orig_item in original:
+        key_words = orig_item.lower().split()[:2]
+        assert any(all(kw in res.lower() for kw in key_words) for res in result)
+
+def test_complex_notes():
+    """Test behavior with complex notes containing special characters, newlines, and indentation"""
+    text = """
+        Project Update:
+        
+        - [ ] Fix login issue (user can't authenticate)
+        *   Update documentation for new feature
+        3.  Investigate performance problem:
+            - Check database queries
+            - Profile API endpoints
+            
+        Action items from discussion:
+        TODO: Contact client about timeline
+        Next: Prepare demo for Friday
+        
+        Note: This is not an action item.
+    """
+    result = extract_action_items_llm(text)
+    original = extract_action_items(text)
+    
+    assert isinstance(result, list)
+    assert len(result) > 0
+    assert all(isinstance(item, str) for item in result)
+    assert len(result) == len(original)
+    
+    # Verify key content from original items exists in LLM results
+    for orig_item in original:
+        key_words = orig_item.lower().split()[:2]
+        assert any(all(kw in res.lower() for kw in key_words) for res in result)
+
+def test_consistency_with_original():
+    """Test that LLM version produces structurally compatible results with original function"""
+    note = "TODO: 审核 PR\n- 准备下周会议\n* Fix bug in login flow\nNext: Send email to team"
+    
+    old_result = extract_action_items(note)
+    new_result = extract_action_items_llm(note)
+    
+    # Verify both return the same type and structure
+    assert isinstance(old_result, list)
+    assert isinstance(new_result, list)
+    assert all(isinstance(item, str) for item in old_result)
+    assert all(isinstance(item, str) for item in new_result)
+    
+    # Verify similar result count and content
+    assert len(old_result) == len(new_result)
+    
+    # Verify semantic equivalence (key content matches)
+    for orig_item in old_result:
+        key_words = orig_item.lower().split()[:2]
+        assert any(all(kw in res.lower() for kw in key_words) for res in new_result)
 ```
 
 ### Exercise 3: Refactor Existing Code for Clarity
