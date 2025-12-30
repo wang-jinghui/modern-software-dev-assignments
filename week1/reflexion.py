@@ -7,6 +7,7 @@ from ollama import chat
 load_dotenv()
 
 NUM_RUNS_TIMES = 1
+MODEL = "qwen3:4b"
 
 SYSTEM_PROMPT = """
 You are a coding assistant. Output ONLY a single fenced Python code block that defines
@@ -15,7 +16,7 @@ Keep the implementation minimal.
 """
 
 # TODO: Fill this in!
-YOUR_REFLEXION_PROMPT = ""
+YOUR_REFLEXION_PROMPT = "you are a helpful assistant that helps me improve my code. I will provide you with the code and the feedback. Please improve the code based on the feedback."
 
 
 # Ground-truth test suite used to evaluate generated code
@@ -81,7 +82,7 @@ def evaluate_function(func: Callable[[str], bool]) -> Tuple[bool, List[str]]:
 
 def generate_initial_function(system_prompt: str) -> str:
     response = chat(
-        model="llama3.1:8b",
+        model=MODEL,
         messages=[
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": "Provide the implementation now."},
@@ -96,7 +97,7 @@ def your_build_reflexion_context(prev_code: str, failures: List[str]) -> str:
 
     Return a string that will be sent as the user content alongside the reflexion system prompt.
     """
-    return ""
+    return f"here is the code:\n{prev_code}\n\nand here are the failures:\n{failures}"
 
 
 def apply_reflexion(
@@ -108,7 +109,7 @@ def apply_reflexion(
     reflection_context = build_context(prev_code, failures)
     print(f"REFLECTION CONTEXT: {reflection_context}, {reflexion_prompt}")
     response = chat(
-        model="llama3.1:8b",
+        model=MODEL,
         messages=[
             {"role": "system", "content": reflexion_prompt},
             {"role": "user", "content": reflection_context},
