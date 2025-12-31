@@ -65,76 +65,7 @@ from typing import List
 import logging
 from ollama import chat
 
-class ActionItemsResponse(BaseModel):
-    """Pydantic model for LLM response structure"""
-    action_items: List[str]
-
-def extract_action_items_llm(text: str) -> List[str]:
-    """
-    Extract action items from text using LLM, with identical signature and behavior
-    as the original extract_action_items function.
-    
-    Args:
-        text: Input text containing potential action items
-        
-    Returns:
-        List of cleaned action items, deduplicated while preserving order
-    """
-    try:
-        # Create a precise prompt reflecting the original function's exact behavior
-        prompt = f"""
-You are an expert in extracting action items from text. Extract all action items following these EXACT rules:
-
-1. Identify action items by:
-   - Bullet point prefixes (-, *, •, or numbered lists like "1.")
-   - Keyword prefixes: "todo:", "action:", "next:"
-   - Checkbox markers: "[ ]" or "[todo]"
-   - Imperative sentences starting with: add, create, implement, fix, update, write, 
-     check, verify, refactor, document, design, investigate
-
-2. For each action item:
-   - Remove bullet point prefixes
-   - Remove checkbox markers ([ ] or [todo])
-   - Do NOT remove keyword prefixes (todo:, action:, next:)
-   - Trim extra whitespace
-
-3. Final processing:
-   - Deduplicate items (keep only first occurrence of each unique item)
-   - Preserve the original order of first occurrences
-   - Return ONLY a JSON object with an "action_items" field containing the cleaned list
-
-Text to analyze:
-{text}
-
-IMPORTANT: Return ONLY the JSON object with the "action_items" field, no explanations or additional text.
-        """
-        
-        # Call Ollama with the structured prompt and JSON format
-        response = chat(
-            model='qwen3:4b',
-            messages=[{'role': 'user', 'content': prompt}],
-            format=ActionItemsResponse.model_json_schema(),
-            options={'temperature': 0.1}
-        )
-        
-        # Parse the response content into our model
-        result = ActionItemsResponse.model_validate_json(response['message']['content'])
-        
-        # Deduplicate while preserving order (exactly matching original function behavior)
-        seen = set()
-        unique_items = []
-        for item in result.action_items:
-            lowered = item.lower()
-            if lowered not in seen:
-                seen.add(lowered)
-                unique_items.append(item)
-                
-        return unique_items
-        
-    except Exception as e:
-        # Log the error but return empty list to match original function behavior
-        logging.error(f"LLM extraction failed: {str(e)}")
-        return []
+# ./app/services/extract.py:93~162
 ```
 
 ### Exercise 2: Add Unit Tests
@@ -178,155 +109,50 @@ Prompt:
 
 Generated Code Snippets:
 ```python
-# tests/test_extract_llm.py
-import pytest
-from app.services.extract import extract_action_items, extract_action_items_llm
-
-def test_empty_string():
-    """Test behavior with empty string input"""
-    result = extract_action_items_llm("")
-    assert isinstance(result, list)
-    assert len(result) == 0
-    assert result == extract_action_items("")
-
-def test_narrative_text():
-    """Test behavior with purely narrative text (no clear action items)"""
-    text = "This is just a regular sentence. It describes something that happened yesterday."
-    result = extract_action_items_llm(text)
-    original = extract_action_items(text)
-    
-    assert isinstance(result, list)
-    assert all(isinstance(item, str) for item in result)
-    assert result == original
-
-def test_bullet_points():
-    """Test behavior with bullet point lists"""
-    text = """
-    - Set up database
-    * Implement API endpoint
-    1. Write unit tests
-    • Review code
-    """
-    result = extract_action_items_llm(text)
-    original = extract_action_items(text)
-    
-    assert isinstance(result, list)
-    assert len(result) > 0
-    assert all(isinstance(item, str) for item in result)
-    assert len(result) == len(original)
-    
-    # Verify key content from original items exists in LLM results
-    for orig_item in original:
-        key_words = orig_item.lower().split()[:2]
-        assert any(all(kw in res.lower() for kw in key_words) for res in result)
-
-def test_keyword_prefixes():
-    """Test behavior with keyword prefixes"""
-    text = """
-    TODO: Complete documentation
-    Action: Schedule meeting with team
-    Next: Prepare presentation slides
-    需要: 审核 PR
-    请完成: 更新用户配置文件
-    """
-    result = extract_action_items_llm(text)
-    original = extract_action_items(text)
-    
-    assert isinstance(result, list)
-    assert len(result) > 0
-    assert all(isinstance(item, str) for item in result)
-    assert len(result) == len(original)
-    
-    # Verify key content from original items exists in LLM results
-    for orig_item in original:
-        key_words = orig_item.lower().split()[:2]
-        assert any(all(kw in res.lower() for kw in key_words) for res in result)
-
-def test_mixed_content():
-    """Test behavior with mixed content containing multiple action items"""
-    text = """
-    Meeting notes from 2023-10-15:
-    
-    - [ ] Set up database
-    * implement API extract endpoint
-    1. Write tests
-    
-    This is just a narrative sentence about what we discussed.
-    
-    Next: Review the design document
-    Action: Send email to stakeholders
-    
-    Some more random text.
-    """
-    result = extract_action_items_llm(text)
-    original = extract_action_items(text)
-    
-    assert isinstance(result, list)
-    assert len(result) > 0
-    assert all(isinstance(item, str) for item in result)
-    assert len(result) == len(original)
-    
-    # Verify key content from original items exists in LLM results
-    for orig_item in original:
-        key_words = orig_item.lower().split()[:2]
-        assert any(all(kw in res.lower() for kw in key_words) for res in result)
-
-def test_complex_notes():
-    """Test behavior with complex notes containing special characters, newlines, and indentation"""
-    text = """
-        Project Update:
-        
-        - [ ] Fix login issue (user can't authenticate)
-        *   Update documentation for new feature
-        3.  Investigate performance problem:
-            - Check database queries
-            - Profile API endpoints
-            
-        Action items from discussion:
-        TODO: Contact client about timeline
-        Next: Prepare demo for Friday
-        
-        Note: This is not an action item.
-    """
-    result = extract_action_items_llm(text)
-    original = extract_action_items(text)
-    
-    assert isinstance(result, list)
-    assert len(result) > 0
-    assert all(isinstance(item, str) for item in result)
-    assert len(result) == len(original)
-    
-    # Verify key content from original items exists in LLM results
-    for orig_item in original:
-        key_words = orig_item.lower().split()[:2]
-        assert any(all(kw in res.lower() for kw in key_words) for res in result)
-
-def test_consistency_with_original():
-    """Test that LLM version produces structurally compatible results with original function"""
-    note = "TODO: 审核 PR\n- 准备下周会议\n* Fix bug in login flow\nNext: Send email to team"
-    
-    old_result = extract_action_items(note)
-    new_result = extract_action_items_llm(note)
-    
-    # Verify both return the same type and structure
-    assert isinstance(old_result, list)
-    assert isinstance(new_result, list)
-    assert all(isinstance(item, str) for item in old_result)
-    assert all(isinstance(item, str) for item in new_result)
-    
-    # Verify similar result count and content
-    assert len(old_result) == len(new_result)
-    
-    # Verify semantic equivalence (key content matches)
-    for orig_item in old_result:
-        key_words = orig_item.lower().split()[:2]
-        assert any(all(kw in res.lower() for kw in key_words) for res in new_result)
+# ./tests/test_extract_llm.py 
 ```
 
 ### Exercise 3: Refactor Existing Code for Clarity
 Prompt: 
 ```
-TODO
+你是一位资深后端架构师，正在对项目中 `./app` 目录下的 FastAPI 应用进行**非功能性重构**。  
+本次重构的目标是**提升代码可维护性与健壮性，不改变任何业务逻辑或 API 行为**。
+
+请重点围绕以下四个方面进行改进：
+
+#### 1. **清晰定义的 API 合约（Schemas）**
+- 所有请求体（Request Body）和响应体（Response Model）必须使用 Pydantic 模型显式声明。
+- 避免在路由函数中直接使用 `dict` 或未类型化的数据结构。
+- 为不同场景（如创建、更新、列表、详情）定义专用的 schema，避免字段泄露（例如密码、内部状态）。
+- 使用 `Field`、`validator` 等机制强化输入校验。
+
+#### 2. **数据库层清理（Database Layer）**
+- 确保数据库操作（CRUD）封装在独立的服务模块或 repository 类中，**路由层不应直接拼接 SQL 或调用 ORM 查询**。
+- 移除硬编码的查询逻辑，改用参数化方法。
+- 统一数据库会话（Session）管理方式（推荐使用依赖注入，如 `get_db`）。
+- 避免在多个文件中重复定义相同的数据访问逻辑。
+
+#### 3. **应用生命周期与配置管理（App Lifecycle & Configuration）**
+- 将配置（如数据库 URL、Ollama 地址、超时设置等）集中到 `config.py` 或使用 `pydantic-settings`。
+- 使用 `lifespan`（而非已弃用的 `on_event`）管理应用启动/关闭时的资源（如连接池、缓存）。
+- 确保依赖项（如数据库连接、外部服务客户端）通过 FastAPI 的依赖注入系统提供，而非全局变量。
+
+#### 4. **统一且健壮的错误处理（Error Handling）**
+- 定义自定义异常类（如 `ActionItemExtractionError`），并在适当位置抛出。
+- 使用 `@app.exception_handler` 注册全局异常处理器，将内部异常转换为标准 HTTP 错误响应（含错误码、消息、可选 trace_id）。
+- 避免在路由中使用裸 `try/except` 返回 ad-hoc 错误信息。
+- 记录关键错误日志（使用 `logging`），但不要暴露敏感信息给客户端。
+
+#### 通用原则：
+- **保持向后兼容**：所有公开 API 的 URL、请求/响应格式不得改变。
+- **小步提交**：每个修改应聚焦单一职责（如“仅重构配置”或“仅提取 DB 层”）。
+- **类型安全**：尽可能添加类型注解，启用 mypy 友好性。
+- **移除死代码**：删除未使用的导入、函数、配置项。
+
+请针对 `./app` 目录中的实际代码结构（包括 `main.py`, `routers/`, `services/`, `models/`, `schemas/`, `database.py` 等）提出具体重构建议或直接输出改进后的代码片段。  
+若某些模块不存在（如无 `schemas/` 目录），可建议创建。
+
+注意：本次任务是**重构（Refactor）**，不是重写（Rewrite）——功能行为必须完全一致。
 ``` 
 
 Generated/Modified Code Snippets:
