@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import sqlite3
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Optional
 
@@ -14,7 +15,20 @@ def ensure_data_directory_exists() -> None:
     DATA_DIR.mkdir(parents=True, exist_ok=True)
 
 
+@contextmanager
+def get_db_connection():
+    """Context manager for database connections"""
+    ensure_data_directory_exists()
+    connection = sqlite3.connect(DB_PATH)
+    connection.row_factory = sqlite3.Row
+    try:
+        yield connection
+    finally:
+        connection.close()
+
+
 def get_connection() -> sqlite3.Connection:
+    """Legacy function for compatibility - should be replaced with context manager"""
     ensure_data_directory_exists()
     connection = sqlite3.connect(DB_PATH)
     connection.row_factory = sqlite3.Row
@@ -23,7 +37,7 @@ def get_connection() -> sqlite3.Connection:
 
 def init_db() -> None:
     ensure_data_directory_exists()
-    with get_connection() as connection:
+    with get_db_connection() as connection:
         cursor = connection.cursor()
         cursor.execute(
             """
@@ -50,7 +64,7 @@ def init_db() -> None:
 
 
 def insert_note(content: str) -> int:
-    with get_connection() as connection:
+    with get_db_connection() as connection:
         cursor = connection.cursor()
         cursor.execute("INSERT INTO notes (content) VALUES (?)", (content,))
         connection.commit()
@@ -58,14 +72,14 @@ def insert_note(content: str) -> int:
 
 
 def list_notes() -> list[sqlite3.Row]:
-    with get_connection() as connection:
+    with get_db_connection() as connection:
         cursor = connection.cursor()
         cursor.execute("SELECT id, content, created_at FROM notes ORDER BY id DESC")
         return list(cursor.fetchall())
 
 
 def get_note(note_id: int) -> Optional[sqlite3.Row]:
-    with get_connection() as connection:
+    with get_db_connection() as connection:
         cursor = connection.cursor()
         cursor.execute(
             "SELECT id, content, created_at FROM notes WHERE id = ?",
@@ -76,7 +90,7 @@ def get_note(note_id: int) -> Optional[sqlite3.Row]:
 
 
 def insert_action_items(items: list[str], note_id: Optional[int] = None) -> list[int]:
-    with get_connection() as connection:
+    with get_db_connection() as connection:
         cursor = connection.cursor()
         ids: list[int] = []
         for item in items:
@@ -90,7 +104,7 @@ def insert_action_items(items: list[str], note_id: Optional[int] = None) -> list
 
 
 def list_action_items(note_id: Optional[int] = None) -> list[sqlite3.Row]:
-    with get_connection() as connection:
+    with get_db_connection() as connection:
         cursor = connection.cursor()
         if note_id is None:
             cursor.execute(
@@ -105,12 +119,10 @@ def list_action_items(note_id: Optional[int] = None) -> list[sqlite3.Row]:
 
 
 def mark_action_item_done(action_item_id: int, done: bool) -> None:
-    with get_connection() as connection:
+    with get_db_connection() as connection:
         cursor = connection.cursor()
         cursor.execute(
             "UPDATE action_items SET done = ? WHERE id = ?",
             (1 if done else 0, action_item_id),
         )
         connection.commit()
-
-
