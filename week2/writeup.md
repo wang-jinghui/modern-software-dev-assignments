@@ -176,12 +176,61 @@ TODO: List all modified code files with the relevant line numbers.
 ### Exercise 5: Generate a README from the Codebase
 Prompt: 
 ```
-TODO
+你是一位技术文档工程师，请基于当前项目的代码库，生成一份清晰、准确、面向开发者友好的 `README.md` 文件。
+
+请仔细分析以下目录的代码内容：
+- `./app/`：FastAPI 后端应用
+- `./frontend/`：前端代码
+- `./test/`：测试套件
+
+根据你的分析，生成的 `README.md` 必须包含以下章节：
+
+---
+
+#### 1. **项目概述（Overview）**
+- 用 2–3 句话说明本项目的核心功能（例如：“一个将自由格式笔记转换为结构化行动项的 Web 应用”）。
+- 提及主要技术栈（如 FastAPI、SQLite等），**仅限代码中实际使用的**。
+
+#### 2. **本地开发环境搭建与运行（Setup & Run）**
+- **后端**：
+  - 列出必要的依赖
+  - 安装命令（如 `pip install -r requirements.txt`）
+  - 启动命令（如 `uvicorn app.main:app --reload`）
+- **前端**（如果存在可运行的前端）：
+  - 构建/启动命令（如 `npm install && npm run dev`）
+  - 默认访问地址（如 `http://localhost:3000`）
+- **整体运行说明**：是否前后端分离？是否需要同时启动？
+
+> 注意：所有命令必须基于实际文件（如 `requirements.txt`、`package.json`）推断，不要编造。
+
+#### 3. **API 接口与功能（API Endpoints）**
+- 列出所有公开的 API 路由
+- 对每个端点说明：
+  - HTTP 方法（GET/POST 等）
+  - 路径
+  - 功能描述（如“从文本中提取行动项”）
+  - 请求/响应示例（可选，但鼓励提供简单 JSON 示例）
+- 如果 API 有版本控制（如 v1），请体现。
+
+#### 4. **运行测试套件（Running Tests）**
+- 说明如何执行测试
+- 是否需要额外配置
+- 测试覆盖哪些模块
+
+---
+
+#### 格式要求：
+- 使用标准 Markdown
+- 语言简洁、技术准确
+- 不要包含“TODO”、“示例”等占位符
+- 所有信息必须**源自代码库**，若某部分不存在（如无前端），则省略或注明“暂无前端”
+
+最终输出仅为 `README.md` 的完整内容，不要包含解释、注释或额外文本。
 ``` 
 
 Generated Code Snippets:
 ```
-TODO: List all modified code files with the relevant line numbers.
+modern-software-dev-assignments/week2/README.md
 ```
 
 
